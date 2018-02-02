@@ -82,57 +82,64 @@ namespace KontrolaLotu
             foreach (ObiektNaziemny on in obiektyNaziemne) fileLength += on.Nazwa.Length;
             byte[] file = new byte[fileLength];
             byte[] onLength = BitConverter.GetBytes(obiektyNaziemne.Count);
-            Buffer.BlockCopy(onLength, 0, file, 0, 4);
-            int pos = 4;
-            foreach (ObiektNaziemny on in obiektyNaziemne)
+            try
             {
-                byte[] nazwaLength = BitConverter.GetBytes(on.Nazwa.Length);
-                Buffer.BlockCopy(nazwaLength, 0, file, pos, 4);
-                pos += 4;
-                byte[] nazwa = Encoding.Default.GetBytes(on.Nazwa);
-                Buffer.BlockCopy(nazwa, 0, file, pos, nazwa.Length);
-                pos += nazwa.Length;
-                byte[] x = BitConverter.GetBytes(on.X);
-                Buffer.BlockCopy(x, 0, file, pos, 8);
-                pos += 8;
-                byte[] y = BitConverter.GetBytes(on.Y);
-                Buffer.BlockCopy(y, 0, file, pos, 8);
-                pos += 8;
-            }
-            byte[] sLength = BitConverter.GetBytes(zapiszSamoloty ? samoloty.Count : 0);
-            Buffer.BlockCopy(sLength, 0, file, pos, 4);
-            pos += 4;
-            if (zapiszSamoloty)
-            {
-                foreach (Samolot s in samoloty)
+                Buffer.BlockCopy(onLength, 0, file, 0, 4);
+                int pos = 4;
+                foreach (ObiektNaziemny on in obiektyNaziemne)
                 {
-                    byte[] nr = BitConverter.GetBytes(s.Numer);
-                    Buffer.BlockCopy(nr, 0, file, pos, 4);
+                    byte[] nazwaLength = BitConverter.GetBytes(on.Nazwa.Length);
+                    Buffer.BlockCopy(nazwaLength, 0, file, pos, 4);
                     pos += 4;
-                    byte[] x = BitConverter.GetBytes(s.X);
+                    byte[] nazwa = Encoding.Default.GetBytes(on.Nazwa);
+                    Buffer.BlockCopy(nazwa, 0, file, pos, nazwa.Length);
+                    pos += nazwa.Length;
+                    byte[] x = BitConverter.GetBytes(on.X);
                     Buffer.BlockCopy(x, 0, file, pos, 8);
                     pos += 8;
-                    byte[] y = BitConverter.GetBytes(s.Y);
+                    byte[] y = BitConverter.GetBytes(on.Y);
                     Buffer.BlockCopy(y, 0, file, pos, 8);
                     pos += 8;
-                    byte[] wysokosc = BitConverter.GetBytes(s.Wysokosc);
-                    Buffer.BlockCopy(wysokosc, 0, file, pos, 8);
-                    pos += 8;
-                    byte[] predkosc = BitConverter.GetBytes(s.Predkosc);
-                    Buffer.BlockCopy(predkosc, 0, file, pos, 8);
-                    pos += 8;
-                    byte[] kierunek = BitConverter.GetBytes(s.Kierunek);
-                    Buffer.BlockCopy(kierunek, 0, file, pos, 8);
-                    pos += 8;
-                    byte[] wDocelowa = BitConverter.GetBytes(s.WysokoscDocelowa);
-                    Buffer.BlockCopy(wDocelowa, 0, file, pos, 8);
-                    pos += 8;
-                    byte[] pDocelowa = BitConverter.GetBytes(s.PredkoscDocelowa);
-                    Buffer.BlockCopy(pDocelowa, 0, file, pos, 8);
-                    pos += 8;
                 }
+                byte[] sLength = BitConverter.GetBytes(zapiszSamoloty ? samoloty.Count : 0);
+                Buffer.BlockCopy(sLength, 0, file, pos, 4);
+                pos += 4;
+                if (zapiszSamoloty)
+                {
+                    foreach (Samolot s in samoloty)
+                    {
+                        byte[] nr = BitConverter.GetBytes(s.Numer);
+                        Buffer.BlockCopy(nr, 0, file, pos, 4);
+                        pos += 4;
+                        byte[] x = BitConverter.GetBytes(s.X);
+                        Buffer.BlockCopy(x, 0, file, pos, 8);
+                        pos += 8;
+                        byte[] y = BitConverter.GetBytes(s.Y);
+                        Buffer.BlockCopy(y, 0, file, pos, 8);
+                        pos += 8;
+                        byte[] wysokosc = BitConverter.GetBytes(s.Wysokosc);
+                        Buffer.BlockCopy(wysokosc, 0, file, pos, 8);
+                        pos += 8;
+                        byte[] predkosc = BitConverter.GetBytes(s.Predkosc);
+                        Buffer.BlockCopy(predkosc, 0, file, pos, 8);
+                        pos += 8;
+                        byte[] kierunek = BitConverter.GetBytes(s.Kierunek);
+                        Buffer.BlockCopy(kierunek, 0, file, pos, 8);
+                        pos += 8;
+                        byte[] wDocelowa = BitConverter.GetBytes(s.WysokoscDocelowa);
+                        Buffer.BlockCopy(wDocelowa, 0, file, pos, 8);
+                        pos += 8;
+                        byte[] pDocelowa = BitConverter.GetBytes(s.PredkoscDocelowa);
+                        Buffer.BlockCopy(pDocelowa, 0, file, pos, 8);
+                        pos += 8;
+                    }
+                }
+                System.IO.File.WriteAllBytes(path, file);
             }
-            System.IO.File.WriteAllBytes(path, file);
+            catch
+            {
+                MessageBox.Show("Nie udało się zapisać pliku!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
         }
 
         public bool WczytajPlik()
@@ -140,47 +147,63 @@ namespace KontrolaLotu
             OpenFileDialog dialog = new OpenFileDialog { Filter = "Mapa Kontroli Lotu (*.mkl)|*.mkl" };
             if (dialog.ShowDialog() != DialogResult.OK) return false;
             string path = dialog.FileName;
-            byte[] file = System.IO.File.ReadAllBytes(path);
+            byte[] file;
+            try { file = System.IO.File.ReadAllBytes(path); }
+            catch
+            {
+                MessageBox.Show("Nie udało się otworzyć pliku!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return false;
+            }
+            List<Obiekt> noweObiekty = new List<Obiekt>();
+            try
+            {
+                int onLength = BitConverter.ToInt32(file, 0);
+                int pos = 4;
+                for (int i = 0; i < onLength; i++)
+                {
+                    int nazwaLength = BitConverter.ToInt32(file, pos);
+                    pos += 4;
+                    string nazwa = Encoding.Default.GetString(file, pos, nazwaLength);
+                    pos += nazwaLength;
+                    double x = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    double y = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    noweObiekty.Add(new ObiektNaziemny(nazwa, x, y));
+                }
+                int sLength = BitConverter.ToInt32(file, pos);
+                pos += 4;
+                for (int i = 0; i < sLength; i++)
+                {
+                    int nr = BitConverter.ToInt32(file, pos);
+                    pos += 4;
+                    double x = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    double y = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    double wysokosc = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    double predkosc = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    double kierunek = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    double wDocelowa = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    double pDocelowa = BitConverter.ToDouble(file, pos);
+                    pos += 8;
+                    Samolot s = new Samolot(nr, x, y, wysokosc, predkosc, kierunek);
+                    s.WysokoscDocelowa = wDocelowa;
+                    s.PredkoscDocelowa = pDocelowa;
+                    noweObiekty.Add(s);
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Niepoprawny format pliku!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return false;
+            }
             Obiekty.Clear();
-            int onLength = BitConverter.ToInt32(file, 0);
-            int pos = 4;
-            for (int i = 0; i < onLength; i++)
-            {
-                int nazwaLength = BitConverter.ToInt32(file, pos);
-                pos += 4;
-                string nazwa = Encoding.Default.GetString(file, pos, nazwaLength);
-                pos += nazwaLength;
-                double x = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                double y = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                DodajObiekt(new ObiektNaziemny(nazwa, x, y));
-            }
-            int sLength = BitConverter.ToInt32(file, pos);
-            pos += 4;
-            for (int i = 0; i < sLength; i++)
-            {
-                int nr = BitConverter.ToInt32(file, pos);
-                pos += 4;
-                double x = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                double y = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                double wysokosc = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                double predkosc = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                double kierunek = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                double wDocelowa = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                double pDocelowa = BitConverter.ToDouble(file, pos);
-                pos += 8;
-                Samolot s = new Samolot(nr, x, y, wysokosc, predkosc, kierunek);
-                s.WysokoscDocelowa = wDocelowa;
-                s.PredkoscDocelowa = pDocelowa;
-                DodajObiekt(s);
-            }
+            foreach (Obiekt o in noweObiekty) DodajObiekt(o);
             return true;
         }
     }

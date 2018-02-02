@@ -33,7 +33,7 @@ namespace KontrolaLotu
                         i--;
                     }
                 }
-                BeginInvoke((MethodInvoker)delegate { pictureBox1.Refresh(); });
+                pictureBox1.Refresh();
             };
             propertyTimer.Tick += (s, e) =>
             {
@@ -57,6 +57,16 @@ namespace KontrolaLotu
         private Random rand = new Random();
         private int skala = 100, minX = -2500, maxX = 2500, minY = -2500, maxY = 2500, xSr = 0, ySr = 0;
         private static int[] wartosciSkali = new int[] { 10, 25, 50, 75, 100, 150, 200, 300, 400 };
+
+        private Obiekt ZaznaczonyObiekt
+        {
+            get { return zaznaczonyObiekt; }
+            set
+            {
+                zaznaczonyObiekt = value;
+                wyswietlDaneObiektu();
+            }
+        }
 
         public int Skala
         {
@@ -106,8 +116,7 @@ namespace KontrolaLotu
             else
             {
                 comboBox1.Text = "";
-                zaznaczonyObiekt = null;
-                wyswietlDaneObiektu();
+                ZaznaczonyObiekt = null;
                 button1.Enabled = false;
                 button5.Enabled = false;
                 button6.Enabled = false;
@@ -116,11 +125,6 @@ namespace KontrolaLotu
 
         private void generujSamolot()
         {
-            if (InvokeRequired)
-            {
-                BeginInvoke((MethodInvoker)delegate { generujSamolot(); });
-                return;
-            }
             int x = 0, y = 0;
             double kierunek = 0;
             switch (rand.Next() % 4)
@@ -243,11 +247,6 @@ namespace KontrolaLotu
 
         private void rysuj(Graphics g)
         {
-            if (InvokeRequired)
-            {
-                BeginInvoke((MethodInvoker)delegate { rysuj(g); });
-                return;
-            }
             Dystans[] d = new Dystans[radar.Obiekty.Count];
             for (int i = 0; i < d.Length; i++) d[i] = Dystans.Bezpieczny;
             for (int i = 0; i < radar.Obiekty.Count; i++)
@@ -317,11 +316,6 @@ namespace KontrolaLotu
 
         private void wyswietlDaneObiektu()
         {
-            if (InvokeRequired)
-            {
-                BeginInvoke((MethodInvoker)delegate { wyswietlDaneObiektu(); });
-                return;
-            }
             if (zaznaczonyObiekt == null)
             {
                 pokazDaneSamolotu(false);
@@ -349,9 +343,8 @@ namespace KontrolaLotu
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            zaznaczonyObiekt = comboBox1.SelectedItem as Obiekt;
-            wyswietlDaneObiektu();
-            button1.Enabled = button5.Enabled = button6.Enabled = zaznaczonyObiekt != null;
+            ZaznaczonyObiekt = comboBox1.SelectedItem as Obiekt;
+            button1.Enabled = button5.Enabled = button6.Enabled = ZaznaczonyObiekt != null;
         }
 
         private void kierunekTextBox_KeyDown(object sender, KeyEventArgs e)
@@ -392,19 +385,19 @@ namespace KontrolaLotu
 
         private void kierunekTextBox_Leave(object sender, EventArgs e)
         {
-            Samolot s = zaznaczonyObiekt as Samolot;
+            Samolot s = ZaznaczonyObiekt as Samolot;
             kierunekTextBox.Text = s != null ? s.Kierunek.ToString("f2") : "";
         }
 
         private void wysokoscDocelowaTextBox_Leave(object sender, EventArgs e)
         {
-            Samolot s = zaznaczonyObiekt as Samolot;
+            Samolot s = ZaznaczonyObiekt as Samolot;
             wysokoscDocelowaTextBox.Text = s != null ? s.WysokoscDocelowa.ToString("f2") : "";
         }
 
         private void predkoscDocelowaTextBox_Leave(object sender, EventArgs e)
         {
-            Samolot s = zaznaczonyObiekt as Samolot;
+            Samolot s = ZaznaczonyObiekt as Samolot;
             predkoscDocelowaTextBox.Text = s != null ? s.PredkoscDocelowa.ToString("f2") : "";
         }
 
@@ -413,7 +406,7 @@ namespace KontrolaLotu
             if (e.KeyCode == Keys.Enter && comboBox1.SelectedItem==null)
             {
                 e.SuppressKeyPress = true;
-                comboBox1.SelectedItem = zaznaczonyObiekt;
+                comboBox1.SelectedItem = ZaznaczonyObiekt;
             }
         }
 
@@ -463,7 +456,11 @@ namespace KontrolaLotu
                 if (s != null) NextId = s.Numer + 1;
                 comboBox1.Items.Add(o);
             }
-            comboBox1.SelectedIndex = 0;
+            if (radar.Obiekty.Count > 0) comboBox1.SelectedIndex = 0;
+            else
+            {
+                ZaznaczonyObiekt = null;
+            }
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -477,8 +474,7 @@ namespace KontrolaLotu
             radar.Obiekty.Clear();
             comboBox1.Items.Clear();
             NextId = 1;
-            zaznaczonyObiekt = null;
-            wyswietlDaneObiektu();
+            ZaznaczonyObiekt = null;
             button1.Enabled = false;
             button5.Enabled = false;
             button6.Enabled = false;
@@ -486,6 +482,7 @@ namespace KontrolaLotu
 
         private void button6_Click(object sender, EventArgs e)
         {
+            if (comboBox1.SelectedItem == null) return;
             new PrzesunObiekt(comboBox1.SelectedItem as Obiekt).ShowDialog();
         }
 
